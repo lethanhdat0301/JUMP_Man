@@ -5,7 +5,7 @@
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 900;
-const int SCREEN_HEIGHT = 360;
+const int SCREEN_HEIGHT = 340;
 
 //Texture wrapper class
 class LTexture
@@ -47,6 +47,8 @@ class LTexture
 		//Image dimensions
 		int mWidth;
 		int mHeight;
+        int mSpriteWidth;
+        int mSpriteHeight;
 
 };
 
@@ -72,10 +74,14 @@ class Dot
 
 		//Shows the dot on the screen
 		void render();
+
         void SetDefaultFrame(int x, int y, int w, int h);
 
-		void SetFrame(int frame);
+		void SetFrame(int frameX, int frameY,int speed);
 		SDL_Rect GetFrame();
+			LTexture GetDotTexture() {
+            return mDotTexture;
+		}
 
     private:
 		//The X and Y offsets of the dot
@@ -84,7 +90,26 @@ class Dot
 		//The velocity of the dot
 		int mVelX, mVelY;
         SDL_Rect mFrame;
+        LTexture mDotTexture;
 };
+class Object
+{
+   private:
+	int mSpriteWidth, mSpriteHeight;
+    int mPosX,mPosY;
+
+public:
+	Object();
+
+	Object(SDL_Renderer* renderer, std::string path, int w, int h);
+
+    int GetPipeWidth();
+	int GetPipeHeight();
+
+	void render();
+
+};
+
 //Key press surfaces constants
 enum KeyPressSurfaces
 {
@@ -114,7 +139,7 @@ SDL_Renderer* gRenderer = NULL;
 //Scene textures
 LTexture gDotTexture;
 LTexture gBGTexture;
-
+LTexture gObTexture;
 
 LTexture::LTexture()
 {
@@ -159,7 +184,7 @@ bool LTexture::loadFromFile( std::string path )
 		{
 			//Get image dimensions
 			mWidth = loadedSurface->w;
-			mHeight = loadedSurface->h;
+            mHeight = loadedSurface-> h;
 		}
 
 		//Get rid of old loaded surface
@@ -221,11 +246,13 @@ void Dot::SetDefaultFrame(int x, int y, int w, int h){
     mFrame.y=y;
     mFrame.w=w;
     mFrame.h=h;
+    /*mSpriteWidth = w;
+	mSpriteHeight = h;*/
 }
 
-void Dot::SetFrame(int frame){
-    mFrame.x=mFrame.w * (frame-1);
-
+void Dot::SetFrame(int frameX,int frameY, int speed){
+    mFrame.x=mFrame.w * (int)(frameX / speed);
+    //Làm chậm
 }
 SDL_Rect Dot::GetFrame(){
     return mFrame;
@@ -246,7 +273,7 @@ Dot::Dot()
 {
     //Initialize the offsets
     mPosX = 0;
-    mPosY = 160;
+    mPosY = 200;
 
     //Initialize the velocity
     mVelX = 0;
@@ -266,8 +293,8 @@ void Dot::handleEvent( SDL_Event& e )
                 mVelY -= DOT_VEL;
             break;
             case SDLK_DOWN: mVelY += DOT_VEL; break;
-            /*case SDLK_LEFT: mVelX -= DOT_VEL; break;
-            case SDLK_RIGHT: mVelX += DOT_VEL; break;*/
+            case SDLK_LEFT: mVelX -= DOT_VEL; break;
+            case SDLK_RIGHT: mVelX += DOT_VEL; break;
         }
 
     }
@@ -280,8 +307,8 @@ void Dot::handleEvent( SDL_Event& e )
             case SDLK_UP: mVelY += DOT_VEL;
             break;
             case SDLK_DOWN: mVelY -= DOT_VEL; break;
-            /*case SDLK_LEFT: mVelX += DOT_VEL; break;
-            case SDLK_RIGHT: mVelX -= DOT_VEL; break;*/
+            case SDLK_LEFT: mVelX += DOT_VEL; break;
+            case SDLK_RIGHT: mVelX -= DOT_VEL; break;
         }
     }
 }
@@ -314,6 +341,35 @@ void Dot::render()
     //Show the dot
 	gDotTexture.render( mPosX, mPosY,&mFrame);
 }
+
+Object::Object()
+{
+	/*mSpriteWidth = 50;
+	mSpriteHeight = 160;*/
+	mPosX =400;
+	mPosY =170;
+}
+
+Object :: Object(SDL_Renderer* renderer, std::string path, int w, int h){
+    mSpriteHeight = h;
+	mSpriteWidth = w;
+}
+
+void Object :: render(){
+    //Show the object
+	gObTexture.render(mPosX,mPosY,NULL);
+}
+
+int Object::GetPipeWidth()
+{
+	return mSpriteWidth;
+}
+
+int Object::GetPipeHeight()
+{
+	return mSpriteHeight;
+}
+
 
 bool init()
 {
@@ -388,6 +444,12 @@ bool loadMedia()
 		success = false;
 	}
 
+	//Load object texture
+	if( !gObTexture.loadFromFile( "image/3.png" ) )
+	{
+		printf( "Failed to load object texture!\n" );
+		success = false;
+	}
 	return success;
 }
 
@@ -396,7 +458,7 @@ void close()
 	//Free loaded images
 	gDotTexture.free();
 	gBGTexture.free();
-
+    gObTexture.free();
 	//Destroy window
 	SDL_DestroyRenderer( gRenderer );
 	SDL_DestroyWindow( gWindow );
@@ -407,8 +469,9 @@ void close()
 	IMG_Quit();
 	SDL_Quit();
 }
-    static int frame =1;
-
+    static int frameX =0;
+    static int frameY =0;
+    bool isJumping = true;
 int main( int argc, char* args[] )
 {
 	//Start up SDL and create window
@@ -434,11 +497,12 @@ int main( int argc, char* args[] )
 			//The dot that will be moving around on the screen
 			Dot dot;
 
+			Object object;
+
 			//The background scrolling offset
 			int scrollingOffset = 0;
 
-            dot.SetDefaultFrame(0,0,153,272);
-            dot.SetFrame(frame);
+
 
 			//While application is running
 			while( !quit )
@@ -450,21 +514,39 @@ int main( int argc, char* args[] )
 					if( e.type == SDL_QUIT )
 					{
 						quit = true;
-					}
+					} else if(e.type == SDL_KEYDOWN){
+                    switch(e.key.keysym.sym)
+                        {
+                    case SDLK_UP:
+                       // Todo
+                        isJumping = true;
+                       break;
 
-
+                        }
+                        }
 
 					//Handle input for the dot
 					dot.handleEvent( e );
                     }
-                    ++frame;
-                    if(frame >6) frame =1;
+                    if(isJumping){
+                    dot.SetFrame(frameX,0, 5);
+                    ++frameX;
+                    }
+                    if (frameX / 5 >= 6) {
+                        frameX = 0;
+                        isJumping = false;
+                    }
                     //Move the dot
                     dot.move();
 
 				//Scroll background
 				--scrollingOffset;
 				if( scrollingOffset < -gBGTexture.getWidth() )
+				{
+					scrollingOffset = 0;
+				}
+
+                if( scrollingOffset < -gObTexture.getWidth() )
 				{
 					scrollingOffset = 0;
 				}
@@ -477,8 +559,11 @@ int main( int argc, char* args[] )
 				gBGTexture.render( scrollingOffset, 0 ,NULL);
 				gBGTexture.render( scrollingOffset + gBGTexture.getWidth(), 0, NULL );
 
+                gObTexture.render( scrollingOffset, 0 ,NULL);
+				gObTexture.render( scrollingOffset + gObTexture.getWidth(), 0, NULL );
 				//Render objects
 				dot.render();
+				object.render();
 
 				//Update screen
 				SDL_RenderPresent( gRenderer );
