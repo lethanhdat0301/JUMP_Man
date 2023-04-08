@@ -57,11 +57,11 @@ class Dot
 {
     public:
 		//The dimensions of the dot
-		static const int DOT_WIDTH = 20;
-		static const int DOT_HEIGHT = 160;
+		static const int DOT_WIDTH = 0;
+		static const int DOT_HEIGHT = 0;
 
 		//Maximum axis velocity of the dot
-		static const int DOT_VEL = 10;
+		static const int DOT_VEL = 15;
 
 		//Initializes the variables
 		Dot();
@@ -84,6 +84,7 @@ class Dot
 			LTexture GetDotTexture() {
             return mDotTexture;
 		}
+		bool isJumping = false;
 
     private:
 		//The X and Y offsets of the dot
@@ -91,6 +92,8 @@ class Dot
 
 		//The velocity of the dot
 		int mVelX, mVelY;
+
+        int ay=0;
 
         SDL_Rect mFrame;
         LTexture mDotTexture;
@@ -102,7 +105,7 @@ class Object
    private:
 	int mSpriteWidth, mSpriteHeight;
     int mPosX,mPosY;
-
+    int mVobX;
 public:
 	Object();
 
@@ -110,8 +113,10 @@ public:
 
     void SetDimension(int w, int h);
 
-    int GetPipeWidth();
-	int GetPipeHeight();
+    void move();
+
+    int GetWidth();
+	int GetHeight();
 
 	void render();
 
@@ -302,49 +307,23 @@ void Dot::handleEvent( SDL_Event& e )
     {
 
         //Adjust the velocity
-        switch( e.key.keysym.sym )
-        {
-            case SDLK_UP:
-                mVelY -= DOT_VEL;
-            break;
-            case SDLK_DOWN:
-                mVelY += DOT_VEL; break;
-            case SDLK_LEFT: mVelX -= DOT_VEL; break;
-            case SDLK_RIGHT: mVelX += DOT_VEL; break;
+        if( e.key.keysym.sym == SDLK_UP){
+
+                if(isJumping==false){
+                isJumping = true;
+                mVelY = DOT_VEL;
+                ay= DOT_VEL / 15;
+                }
         }
 
-    }
-    //If a key was released
-    else if( e.type == SDL_KEYUP && e.key.repeat == 0 )
-    {
-        //Adjust the velocity
-        switch( e.key.keysym.sym )
-        {
-            case SDLK_UP: mVelY += DOT_VEL;
-            break;
-            case SDLK_DOWN: mVelY -= DOT_VEL; break;
-            case SDLK_LEFT: mVelX += DOT_VEL; break;
-            case SDLK_RIGHT: mVelX -= DOT_VEL; break;
-        }
     }
 }
 
 void Dot::move(SDL_Rect &Object)
 {
-    //Move the dot left or right
-    mPosX += mVelX;
-    mCollider.x = mPosX;
-
-    //If the dot went too far to the left or right
-    if( ( mPosX < 0 ) || ( mPosX + DOT_WIDTH > SCREEN_WIDTH ) )
-    {
-        //Move back
-        mPosX -= mVelX;
-        mCollider.x = mPosX;
-    }
-
     //Move the dot up or down
-    mPosY += mVelY;
+    mPosY -= mVelY;
+    mVelY -= ay;
     mCollider.y = mPosY;
 
     //If the dot went too far up or down
@@ -354,6 +333,17 @@ void Dot::move(SDL_Rect &Object)
         mPosY -= mVelY;
         mCollider.y = mPosY;
     }
+
+     if(mPosY > 182) {
+                    mVelY=0;
+                    ay =0;
+                    isJumping = false;
+                    mPosY=182;
+                }
+    if(mPosY < 182) {
+        isJumping=true;
+    }
+
 }
 
 void Dot::render()
@@ -368,6 +358,7 @@ Object::Object()
 	mSpriteHeight = 0;
 	mPosX =400;
 	mPosY =170;
+	mVobX = 2;
 }
 
 Object :: Object(SDL_Renderer* renderer, std::string path, int w, int h){
@@ -379,6 +370,19 @@ void Object :: render(){
     //Show the object
 	gObTexture.render(mPosX,mPosY,NULL);
 }
+void Object::move(){
+    mPosX-=mVobX;
+    if(mPosX < -100) {
+        int k = rand()%2;
+    if(k==1){
+        gObTexture.loadFromFile("image/4.png");
+    } else if(k==2){
+        gObTexture.loadFromFile("image/5.png");
+    }
+        mPosX = SCREEN_WIDTH;
+    }
+
+}
 
 /*void Object::SetDimension(int w, int h) {
 	mPipeHigh->GetTexturedRectangle().SetDimension(w, h);
@@ -387,12 +391,12 @@ void Object :: render(){
 	mSpriteWidth = w;
 }*/
 
-int Object::GetPipeWidth()
+int Object::GetWidth()
 {
 	return mSpriteWidth;
 }
 
-int Object::GetPipeHeight()
+int Object::GetHeight()
 {
 	return mSpriteHeight;
 }
@@ -546,7 +550,7 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     static int frameX =0;
     static int frameY =0;
     static int numberofframe=4;
-    bool isJumping = false;
+
 int main( int argc, char* args[] )
 {
 	//Start up SDL and create window
@@ -591,21 +595,14 @@ int main( int argc, char* args[] )
 					if( e.type == SDL_QUIT )
 					{
 						quit = true;
-					} else if(e.type == SDL_KEYDOWN){
-                        switch(e.key.keysym.sym)
-                            {
-                                case SDLK_UP:
-                                   // Todo
-                                isJumping = true;
-                                   break;
-                                }
-                            }
+					}
+
 					//Handle input for the dot
 					dot.handleEvent( e );
                     }
-                    if(isJumping==true){
+                    if(dot.isJumping==true){
                             if(frameX==4){
-                                isJumping=false;
+                                dot.isJumping=false;
                             }
                             frameY=1;
                             numberofframe=5;
@@ -625,8 +622,11 @@ int main( int argc, char* args[] )
 
 
                     dot.SetFrame(frameX,frameY, 5);
+
                     //Move the dot
                     dot.move(Object);
+                    object.move();
+
 
 				//Scroll background
 				--scrollingOffset;
