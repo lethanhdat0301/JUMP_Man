@@ -85,6 +85,7 @@ class Dot
 			LTexture GetDotTexture() {
             return mDotTexture;
 		}
+		SDL_Rect getCollider();
 		bool isJumping = false;
 
     private:
@@ -107,6 +108,7 @@ class Object
 	int mSpriteWidth, mSpriteHeight;
     int mPosX,mPosY;
     int mVobX;
+    SDL_Rect mCollider;
 public:
 	Object();
 
@@ -120,6 +122,8 @@ public:
 	int GetHeight();
 
 	void render();
+
+	SDL_Rect getCollider();
 
 };
 
@@ -268,12 +272,17 @@ void Dot::SetDefaultFrame(int x, int y, int w, int h){
 
 void Dot::SetFrame(int frameX,int frameY, int speed){
     mFrame.x=mFrame.w * (int)(frameX / speed);
-    mFrame.y=mFrame.h *(int)(frameY/speed);
+    mFrame.y=mFrame.h *(int)(frameY);
     //Làm chậm
 }
 SDL_Rect Dot::GetFrame(){
     return mFrame;
 }
+
+SDL_Rect Dot::getCollider(){
+    return mCollider;
+}
+
 
 int LTexture::getWidth()
 {
@@ -325,14 +334,12 @@ void Dot::move(SDL_Rect &Object)
     //Move the dot up or down
     mPosY -= mVelY;
     mVelY -= ay;
-    mCollider.y = mPosY;
 
     //If the dot went too far up or down
     if( ( mPosY < 0 ) || ( mPosY + DOT_HEIGHT > SCREEN_HEIGHT ) )
     {
         //Move back
         mPosY -= mVelY;
-        mCollider.y = mPosY;
     }
 
      if(mPosY > 182) {
@@ -345,6 +352,8 @@ void Dot::move(SDL_Rect &Object)
         isJumping=true;
     }
 
+    mCollider.x = mPosX;
+    mCollider.y = mPosY;
 }
 
 void Dot::render()
@@ -374,16 +383,20 @@ void Object :: render(){
 void Object::move(){
     mPosX-=mVobX;
     if(mPosX < -100) {
-        srand(SDL_GetTicks());
-        int k = rand()%2;
-    if(k==1){
+
+        int k = rand()%3;
+    if(k==0){
+        gObTexture.loadFromFile("image/3.png");
+    } else if(k==1){
         gObTexture.loadFromFile("image/4.png");
     } else if(k==2){
-        gObTexture.loadFromFile("image/5.png");
-    }
-        mPosX = SCREEN_WIDTH;
+         gObTexture.loadFromFile("image/5.png");
     }
 
+        mPosX = SCREEN_WIDTH;
+    }
+    mCollider.x += mVobX;
+    mCollider.y = mPosY;
 }
 
 /*void Object::SetDimension(int w, int h) {
@@ -403,6 +416,9 @@ int Object::GetHeight()
 	return mSpriteHeight;
 }
 
+SDL_Rect Object::getCollider(){
+    return mCollider;
+}
 
 bool init()
 {
@@ -552,9 +568,10 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     static int frameX =0;
     static int frameY =0;
     static int numberofframe=4;
-
+    bool gStartgame = false;
 int main( int argc, char* args[] )
 {
+    srand(SDL_GetTicks());
 	//Start up SDL and create window
 	if( !init() )
 	{
@@ -585,11 +602,12 @@ int main( int argc, char* args[] )
 			//The background scrolling offset
 			int scrollingOffset = 0;
 
-            dot.SetDefaultFrame(0,0,67,95);
+            dot.SetDefaultFrame(0,0,65,95);
 
 			//While application is running
 			while( !quit )
 			{
+			    Uint32 start = SDL_GetTicks();
 				//Handle events on queue
 				while( SDL_PollEvent( &e ) != 0 )
 				{
@@ -597,11 +615,16 @@ int main( int argc, char* args[] )
 					if( e.type == SDL_QUIT )
 					{
 						quit = true;
+					} else if (e.key.keysym.sym == SDLK_SPACE) {
+
+					    gStartgame = true;
 					}
 
 					//Handle input for the dot
 					dot.handleEvent( e );
                     }
+                    if (gStartgame == true){
+
                     if(dot.isJumping==true){
                             if(frameX==4){
                                 dot.isJumping=false;
@@ -609,21 +632,21 @@ int main( int argc, char* args[] )
                             frameY=1;
                             numberofframe=5;
                             ++frameX;
-                            if (frameX/5 >= numberofframe){
+                            if (frameX/7 >= numberofframe){
                             frameX =0;
                             }
                     } else {
                             frameY=0;
                             numberofframe=4;
                             frameX++;
-                            if (frameX/5 >= numberofframe){
+                            if (frameX/7 >= numberofframe){
                                 frameX=0;
                             }
                     //isJumping=false;
                     }
 
 
-                    dot.SetFrame(frameX,frameY, 5);
+                    dot.SetFrame(frameX,frameY, 7);
 
                     //Move the dot
                     dot.move(Object);
@@ -631,14 +654,21 @@ int main( int argc, char* args[] )
 
 
 				//Scroll background
-				--scrollingOffset;
+				scrollingOffset-=2;
 				if( scrollingOffset < -gBGTexture.getWidth() )
 				{
 					scrollingOffset = 0;
 				}
 
 
-				//Clear screen
+
+
+                    if(checkCollision(dot.getCollider(),object.getCollider())){
+                        gStartgame = false;
+                    }
+                    }
+
+                    				//Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
 				SDL_RenderClear( gRenderer );
 
@@ -652,6 +682,16 @@ int main( int argc, char* args[] )
 
 				//Update screen
 				SDL_RenderPresent( gRenderer );
+
+
+				Uint32 finish = SDL_GetTicks();
+
+				/*Set a frame cap
+				Nếu thời gian thực hiện 1 frame mà nhỏ hơn 16 thì sẽ Delay cho đếnn khi máy tính load xong ảnh thì mới thực hiện vòng lặp tiếp.
+				*/
+				if(finish - start < 16){
+                    SDL_Delay(16- (finish - start));
+				}
 			}
 		}
 	}
