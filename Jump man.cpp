@@ -579,7 +579,7 @@ int main( int argc, char* args[] )
 			//The background scrolling offset
 			int scrollingOffset = 0;
 
-            dot.SetDefaultFrame(0,0,60,95);
+            dot.SetDefaultFrame(0,0,67,95);
 
 			//While application is running
 			while( !quit )
@@ -604,19 +604,22 @@ int main( int argc, char* args[] )
 					dot.handleEvent( e );
                     }
                     if(isJumping==true){
-                    frameY=0;
-                    numberofframe=5;
-                    ++frameX;
-                    if (frameX/5 >= numberofframe){
-                    frameX =0;
-                    }
+                            if(frameX==4){
+                                isJumping=false;
+                            }
+                            frameY=1;
+                            numberofframe=5;
+                            ++frameX;
+                            if (frameX/5 >= numberofframe){
+                            frameX =0;
+                            }
                     } else {
-                    frameY=1;
-                    numberofframe=4;
-                    frameX++;
-                    if (frameX/5 >= numberofframe){
-                        frameX=0;
-                    }
+                            frameY=0;
+                            numberofframe=4;
+                            frameX++;
+                            if (frameX/5 >= numberofframe){
+                                frameX=0;
+                            }
                     //isJumping=false;
                     }
 
