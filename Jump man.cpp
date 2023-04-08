@@ -2,6 +2,7 @@
 #include <SDL_image.h>
 #include <stdio.h>
 #include <string>
+#include <random>
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 900;
@@ -373,6 +374,7 @@ void Object :: render(){
 void Object::move(){
     mPosX-=mVobX;
     if(mPosX < -100) {
+        srand(SDL_GetTicks());
         int k = rand()%2;
     if(k==1){
         gObTexture.loadFromFile("image/4.png");
