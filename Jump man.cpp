@@ -58,7 +58,7 @@ class Dot
     public:
 		//The dimensions of the dot
 		static const int DOT_WIDTH = 20;
-		static const int DOT_HEIGHT = 20;
+		static const int DOT_HEIGHT = 160;
 
 		//Maximum axis velocity of the dot
 		static const int DOT_VEL = 10;
@@ -70,14 +70,16 @@ class Dot
 		void handleEvent( SDL_Event& e );
 
 		//Moves the dot
-		void move();
+		//void move();
+
+		void move( SDL_Rect &Object );
 
 		//Shows the dot on the screen
 		void render();
 
         void SetDefaultFrame(int x, int y, int w, int h);
 
-		void SetFrame(int frameX, int frameY,int speed);
+		void SetFrame(int frameX,int frameY,int speed);
 		SDL_Rect GetFrame();
 			LTexture GetDotTexture() {
             return mDotTexture;
@@ -89,8 +91,11 @@ class Dot
 
 		//The velocity of the dot
 		int mVelX, mVelY;
+
         SDL_Rect mFrame;
         LTexture mDotTexture;
+        //Dot's collision box
+        SDL_Rect mCollider;
 };
 class Object
 {
@@ -102,6 +107,8 @@ public:
 	Object();
 
 	Object(SDL_Renderer* renderer, std::string path, int w, int h);
+
+    void SetDimension(int w, int h);
 
     int GetPipeWidth();
 	int GetPipeHeight();
@@ -129,6 +136,9 @@ bool loadMedia();
 
 //Frees media and shuts down SDL
 void close();
+
+//Box collision detector
+bool checkCollision( SDL_Rect a, SDL_Rect b );
 
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
@@ -252,6 +262,7 @@ void Dot::SetDefaultFrame(int x, int y, int w, int h){
 
 void Dot::SetFrame(int frameX,int frameY, int speed){
     mFrame.x=mFrame.w * (int)(frameX / speed);
+    mFrame.y=mFrame.h *(int)(frameY/speed);
     //Làm chậm
 }
 SDL_Rect Dot::GetFrame(){
@@ -272,8 +283,12 @@ int LTexture::getHeight()
 Dot::Dot()
 {
     //Initialize the offsets
-    mPosX = 0;
-    mPosY = 200;
+    mPosX = 25;
+    mPosY = 182;
+
+    //Set collision box dimension
+	mCollider.w = DOT_WIDTH;
+	mCollider.h = DOT_HEIGHT;
 
     //Initialize the velocity
     mVelX = 0;
@@ -292,7 +307,8 @@ void Dot::handleEvent( SDL_Event& e )
             case SDLK_UP:
                 mVelY -= DOT_VEL;
             break;
-            case SDLK_DOWN: mVelY += DOT_VEL; break;
+            case SDLK_DOWN:
+                mVelY += DOT_VEL; break;
             case SDLK_LEFT: mVelX -= DOT_VEL; break;
             case SDLK_RIGHT: mVelX += DOT_VEL; break;
         }
@@ -313,26 +329,30 @@ void Dot::handleEvent( SDL_Event& e )
     }
 }
 
-void Dot::move()
+void Dot::move(SDL_Rect &Object)
 {
     //Move the dot left or right
     mPosX += mVelX;
+    mCollider.x = mPosX;
 
     //If the dot went too far to the left or right
     if( ( mPosX < 0 ) || ( mPosX + DOT_WIDTH > SCREEN_WIDTH ) )
     {
         //Move back
         mPosX -= mVelX;
+        mCollider.x = mPosX;
     }
 
     //Move the dot up or down
     mPosY += mVelY;
+    mCollider.y = mPosY;
 
     //If the dot went too far up or down
     if( ( mPosY < 0 ) || ( mPosY + DOT_HEIGHT > SCREEN_HEIGHT ) )
     {
         //Move back
         mPosY -= mVelY;
+        mCollider.y = mPosY;
     }
 }
 
@@ -344,8 +364,8 @@ void Dot::render()
 
 Object::Object()
 {
-	/*mSpriteWidth = 50;
-	mSpriteHeight = 160;*/
+	mSpriteWidth =0;
+	mSpriteHeight = 0;
 	mPosX =400;
 	mPosY =170;
 }
@@ -359,6 +379,13 @@ void Object :: render(){
     //Show the object
 	gObTexture.render(mPosX,mPosY,NULL);
 }
+
+/*void Object::SetDimension(int w, int h) {
+	mPipeHigh->GetTexturedRectangle().SetDimension(w, h);
+	mPipeLow->GetTexturedRectangle().SetDimension(w, h);
+	mSpriteHeight = h;
+	mSpriteWidth = w;
+}*/
 
 int Object::GetPipeWidth()
 {
@@ -431,7 +458,7 @@ bool loadMedia()
 	bool success = true;
 
 	//Load dot texture
-	if( !gDotTexture.loadFromFile( "image/1.png" ) )
+	if( !gDotTexture.loadFromFile( "image/8.png" ) )
 	{
 		printf( "Failed to load dot texture!\n" );
 		success = false;
@@ -469,9 +496,57 @@ void close()
 	IMG_Quit();
 	SDL_Quit();
 }
+
+bool checkCollision( SDL_Rect a, SDL_Rect b )
+{
+    //The sides of the rectangles
+    int leftA, leftB;
+    int rightA, rightB;
+    int topA, topB;
+    int bottomA, bottomB;
+
+    //Calculate the sides of rect A
+    leftA = a.x;
+    rightA = a.x + a.w;
+    topA = a.y;
+    bottomA = a.y + a.h;
+
+    //Calculate the sides of rect B
+    leftB = b.x;
+    rightB = b.x + b.w;
+    topB = b.y;
+    bottomB = b.y + b.h;
+
+    //If any of the sides from A are outside of B
+    if( bottomA <= topB )
+    {
+        return false;
+    }
+
+    if( topA >= bottomB )
+    {
+        return false;
+    }
+
+    if( rightA <= leftB )
+    {
+        return false;
+    }
+
+    if( leftA >= rightB )
+    {
+        return false;
+    }
+
+    //If none of the sides from A are outside B
+    return true;
+}
+
+
     static int frameX =0;
     static int frameY =0;
-    bool isJumping = true;
+    static int numberofframe=4;
+    bool isJumping = false;
 int main( int argc, char* args[] )
 {
 	//Start up SDL and create window
@@ -498,11 +573,13 @@ int main( int argc, char* args[] )
 			Dot dot;
 
 			Object object;
+			SDL_Rect Object;
+
 
 			//The background scrolling offset
 			int scrollingOffset = 0;
 
-
+            dot.SetDefaultFrame(0,0,60,95);
 
 			//While application is running
 			while( !quit )
@@ -515,29 +592,38 @@ int main( int argc, char* args[] )
 					{
 						quit = true;
 					} else if(e.type == SDL_KEYDOWN){
-                    switch(e.key.keysym.sym)
-                        {
-                    case SDLK_UP:
-                       // Todo
-                        isJumping = true;
-                       break;
-
-                        }
-                        }
-
+                        switch(e.key.keysym.sym)
+                            {
+                                case SDLK_UP:
+                                   // Todo
+                                isJumping = true;
+                                   break;
+                                }
+                            }
 					//Handle input for the dot
 					dot.handleEvent( e );
                     }
-                    if(isJumping){
-                    dot.SetFrame(frameX,0, 5);
+                    if(isJumping==true){
+                    frameY=0;
+                    numberofframe=5;
                     ++frameX;
+                    if (frameX/5 >= numberofframe){
+                    frameX =0;
                     }
-                    if (frameX / 5 >= 6) {
-                        frameX = 0;
-                        isJumping = false;
+                    } else {
+                    frameY=1;
+                    numberofframe=4;
+                    frameX++;
+                    if (frameX/5 >= numberofframe){
+                        frameX=0;
                     }
+                    //isJumping=false;
+                    }
+
+
+                    dot.SetFrame(frameX,frameY, 5);
                     //Move the dot
-                    dot.move();
+                    dot.move(Object);
 
 				//Scroll background
 				--scrollingOffset;
@@ -546,10 +632,6 @@ int main( int argc, char* args[] )
 					scrollingOffset = 0;
 				}
 
-                if( scrollingOffset < -gObTexture.getWidth() )
-				{
-					scrollingOffset = 0;
-				}
 
 				//Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
@@ -559,8 +641,6 @@ int main( int argc, char* args[] )
 				gBGTexture.render( scrollingOffset, 0 ,NULL);
 				gBGTexture.render( scrollingOffset + gBGTexture.getWidth(), 0, NULL );
 
-                gObTexture.render( scrollingOffset, 0 ,NULL);
-				gObTexture.render( scrollingOffset + gObTexture.getWidth(), 0, NULL );
 				//Render objects
 				dot.render();
 				object.render();
