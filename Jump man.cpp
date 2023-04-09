@@ -2,6 +2,7 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <stdio.h>
+#include <iostream>
 #include <string>
 #include <random>
 
@@ -111,7 +112,7 @@ class Object
 {
    private:
 	int mSpriteWidth, mSpriteHeight;
-    int mPosX,mPosY;
+
     SDL_Rect mCollider;
 public:
 	Object();
@@ -127,6 +128,8 @@ public:
 	int GetHeight();
 
     int mVobX;
+
+    int mPosX,mPosY;
 
 	void render();
 
@@ -165,11 +168,13 @@ SDL_Renderer* gRenderer = NULL;
 
 TTF_Font *gFont = NULL;
 
-//Scene textures
 LTexture gDotTexture;
 LTexture gBGTexture;
 LTexture gObTexture;
 LTexture gTextTexture;
+
+static int score =0;
+std::vector<Object> v;
 
 LTexture::LTexture()
 {
@@ -310,8 +315,6 @@ void Dot::SetDefaultFrame(int x, int y, int w, int h){
     mFrame.y=y;
     mFrame.w=w;
     mFrame.h=h;
-    /*mSpriteWidth = w;
-	mSpriteHeight = h;*/
 }
 
 void Dot::SetFrame(int frameX,int frameY, int speed){
@@ -408,7 +411,7 @@ void Dot::render()
 
 Object::Object()
 {
-	mSpriteWidth =0;
+	mSpriteWidth = 0;
 	mSpriteHeight = 0;
 	mPosX =400;
 	mPosY =170;
@@ -562,8 +565,9 @@ bool loadMedia()
 	else
 	{
 		//Render text
+		std::string s = "score: " + std::to_string(int(SDL_GetTicks()/1000));
 		SDL_Color textColor = { 255,255,255 };
-		if( !gTextTexture.loadFromRenderedText( "SCORE:", textColor ) )
+		if( !gTextTexture.loadFromRenderedText( s.c_str(), textColor ) )
 		{
 			printf( "Failed to render text texture!\n" );
 			success = false;
@@ -647,7 +651,8 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     static int frameY =0;
     static int numberofframe=4;
     bool gStartgame = false;
-    static int score =0;
+
+
 int main( int argc, char* args[] )
 {
     srand(SDL_GetTicks());
@@ -676,11 +681,10 @@ int main( int argc, char* args[] )
 
 			Object object;
 
-            object = Object(gRenderer,"image/3.png",42,90);
+                object = Object(gRenderer,"image/3.png",42,90);
+                object.SetDimension(500,183);
+                object.mVobX = 7;
 
-            object.SetDimension(500,183);
-
-            object.mVobX = 7;
 
 			//The background scrolling offset
 			int scrollingOffset = 0;
@@ -743,9 +747,10 @@ int main( int argc, char* args[] )
                             gStartgame = false;
                         }
                 }
-                if(dot.mPosX < - object.GetWidth()){
+                /*if( object.mPosX < -object.GetWidth()){
                     score++;
-                }
+                }*/
+
 
                 //Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
@@ -755,12 +760,18 @@ int main( int argc, char* args[] )
 				gBGTexture.render( scrollingOffset, 0 ,NULL);
 				gBGTexture.render( scrollingOffset + gBGTexture.getWidth(), 0, NULL );
 
+                //Render text
+                std::string s = "score: " + std::to_string(int(SDL_GetTicks()/1000));
+                SDL_Color textColor = { 255,255,255 };
+                gTextTexture.loadFromRenderedText( s.c_str(), textColor );
+
                 gTextTexture.render( 90, 15 , NULL );
 
 
 				//Render objects
 				dot.render();
-				object.render();
+                object.render();
+
 
 				//Update screen
 				SDL_RenderPresent( gRenderer );
