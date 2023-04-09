@@ -73,7 +73,7 @@ class Dot
 		//Moves the dot
 		//void move();
 
-		void move( SDL_Rect &Object );
+		void move();
 
 		//Shows the dot on the screen
 		void render();
@@ -114,7 +114,8 @@ public:
 
 	Object(SDL_Renderer* renderer, std::string path, int w, int h);
 
-    void SetDimension(int w, int h);
+
+    void SetDimension(int x, int y);
 
     void move();
 
@@ -298,8 +299,8 @@ int LTexture::getHeight()
 Dot::Dot()
 {
     //Initialize the offsets
-    mPosX = 25;
-    mPosY = 182;
+    mPosX = 190;
+    mPosY = 183;
 
     //Set collision box dimension
 	mCollider.w = DOT_WIDTH;
@@ -329,7 +330,7 @@ void Dot::handleEvent( SDL_Event& e )
     }
 }
 
-void Dot::move(SDL_Rect &Object)
+void Dot::move()
 {
     //Move the dot up or down
     mPosY -= mVelY;
@@ -374,6 +375,8 @@ Object::Object()
 Object :: Object(SDL_Renderer* renderer, std::string path, int w, int h){
     mSpriteHeight = h;
 	mSpriteWidth = w;
+	mCollider.w=w;
+	mCollider.h=h;
 }
 
 void Object :: render(){
@@ -399,12 +402,10 @@ void Object::move(){
     mCollider.y = mPosY;
 }
 
-/*void Object::SetDimension(int w, int h) {
-	mPipeHigh->GetTexturedRectangle().SetDimension(w, h);
-	mPipeLow->GetTexturedRectangle().SetDimension(w, h);
-	mSpriteHeight = h;
-	mSpriteWidth = w;
-}*/
+void Object::SetDimension(int x, int y) {
+    mPosX=x;
+    mPosY=y;
+}
 
 int Object::GetWidth()
 {
@@ -596,8 +597,10 @@ int main( int argc, char* args[] )
 			Dot dot;
 
 			Object object;
-			SDL_Rect Object;
 
+            object = Object(gRenderer,"image/3.png",50,104);
+
+            object.SetDimension (500,170);
 
 			//The background scrolling offset
 			int scrollingOffset = 0;
@@ -642,33 +645,26 @@ int main( int argc, char* args[] )
                             if (frameX/7 >= numberofframe){
                                 frameX=0;
                             }
-                    //isJumping=false;
                     }
-
-
                     dot.SetFrame(frameX,frameY, 7);
 
-                    //Move the dot
-                    dot.move(Object);
+                    dot.move();
                     object.move();
 
 
 				//Scroll background
-				scrollingOffset-=2;
+				scrollingOffset-=3;
 				if( scrollingOffset < -gBGTexture.getWidth() )
 				{
 					scrollingOffset = 0;
 				}
-
-
-
 
                     if(checkCollision(dot.getCollider(),object.getCollider())){
                         gStartgame = false;
                     }
                     }
 
-                    				//Clear screen
+                //Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
 				SDL_RenderClear( gRenderer );
 
