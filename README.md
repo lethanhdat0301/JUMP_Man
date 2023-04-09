@@ -19,5 +19,7 @@ Download the latest SDL2 libraries  according to this link : https://www.libsdl.
    ![image](https://user-images.githubusercontent.com/125379898/230768319-d0a2cd12-c493-4014-9f4d-5d956d485cb8.png)
 ## Gameplay:
 Guide the character to jump over the cactus without touching them. Up arrow key to jump over. The owner has only 1 life.
+## Preview:
+Update later
 ## Contact:
 22028189@vnu.edu.vn
