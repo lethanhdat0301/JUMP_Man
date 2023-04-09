@@ -1,0 +1,11 @@
+# depslib dependency file v1.0
+1681053887 source:e:\sdlnew\ltnc\jump_man\main.cpp
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<stdio.h>
+	<iostream>
+	<string>
+	<random>
+	<time.h>
+
