@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <random>
+#include <time.h>
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 900;
@@ -41,6 +42,7 @@ class LTexture
 		//Renders texture at given point
 		void render( int x, int y, SDL_Rect* clip, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE );
 
+        void SetDimension(int w, int h);
 
 		//Gets image dimensions
 		int getWidth();
@@ -79,6 +81,8 @@ class Dot
 
 		//Shows the dot on the screen
 		void render();
+
+		void SetDimension(int x, int y);
 
         void SetDefaultFrame(int x, int y, int w, int h);
 
@@ -277,6 +281,12 @@ void LTexture::free()
 	}
 }
 
+void LTexture::SetDimension(int w, int h){
+    mWidth = w;
+    mHeight = h;
+
+}
+
 void LTexture::setColor( Uint8 red, Uint8 green, Uint8 blue )
 {
 	//Modulate texture rgb
@@ -309,25 +319,6 @@ void LTexture::render( int x, int y, SDL_Rect* clip, double angle, SDL_Point* ce
 
 	//Render to screen
 	SDL_RenderCopyEx( gRenderer, mTexture, clip, &renderQuad, angle, center, flip );
-}
-void Dot::SetDefaultFrame(int x, int y, int w, int h){
-    mFrame.x=x;
-    mFrame.y=y;
-    mFrame.w=w;
-    mFrame.h=h;
-}
-
-void Dot::SetFrame(int frameX,int frameY, int speed){
-    mFrame.x=mFrame.w * (int)(frameX / speed);
-    mFrame.y=mFrame.h *(int)(frameY);
-    //Làm chậm
-}
-SDL_Rect Dot::GetFrame(){
-    return mFrame;
-}
-
-SDL_Rect Dot::getCollider(){
-    return mCollider;
 }
 
 
@@ -408,6 +399,32 @@ void Dot::render()
     //Show the dot
 	gDotTexture.render( mPosX, mPosY,&mFrame);
 }
+void Dot::SetDefaultFrame(int x, int y, int w, int h){
+    mFrame.x=x;
+    mFrame.y=y;
+    mFrame.w=w;
+    mFrame.h=h;
+}
+
+void Dot::SetFrame(int frameX,int frameY, int speed){
+    mFrame.x=mFrame.w * (int)(frameX / speed);
+    mFrame.y=mFrame.h *(int)(frameY);
+    //Làm chậm
+}
+SDL_Rect Dot::GetFrame(){
+    return mFrame;
+}
+
+SDL_Rect Dot::getCollider(){
+    return mCollider;
+}
+
+void Dot::SetDimension(int x, int y) {
+    mCollider.w=x;
+    mCollider.h=y;
+}
+
+
 
 Object::Object()
 {
@@ -442,6 +459,8 @@ void Object::move(){
 void Object::SetDimension(int x, int y) {
     mPosX=x;
     mPosY=y;
+    mCollider.x=x;
+    mCollider.y=y;
 }
 
 int Object::GetWidth()
@@ -556,7 +575,7 @@ bool loadMedia()
 	else
 	{
 		//Render text
-		std::string s = "score: " + std::to_string(int(SDL_GetTicks()/1000));
+		std::string s = "score: " + std::to_string(score);
 		SDL_Color textColor = { 255,255,255 };
 		if( !gTextTexture.loadFromRenderedText( s.c_str(), textColor ) )
 		{
@@ -637,7 +656,6 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     return true;
 }
 
-
     static int frameX =0;
     static int frameY =0;
     static int numberofframe=4;
@@ -646,7 +664,6 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
 
 int main( int argc, char* args[] )
 {
-    srand(SDL_GetTicks());
 	//Start up SDL and create window
 	if( !init() )
 	{
@@ -673,13 +690,14 @@ int main( int argc, char* args[] )
 			//Object object;
 
 			for(int i=0;i<3;i++){
+                srand((unsigned int) time(NULL)) ;
                 int k = rand()%3;
                 if(k==0){
                     v.push_back(Object(gRenderer,"image/3.png",42,90));
                 } else if(k==1){
-                    v.push_back(Object(gRenderer,"image/4.png",42,90));
+                    v.push_back(Object(gRenderer,"image/4.png",60,90));
                 } else {
-                    v.push_back(Object(gRenderer,"image/5.png",42,90));
+                    v.push_back(Object(gRenderer,"image/5.png",50,90));
                 }
                 v[i].SetDimension(SCREEN_WIDTH + i* 300 ,185);
                 v[i].mVobX =7;
@@ -690,6 +708,7 @@ int main( int argc, char* args[] )
 			int scrollingOffset = 0;
 
             dot.SetDefaultFrame(0,0,66,92);
+            dot.SetDimension(30,92);
 
 			//While application is running
 			while( !quit )
@@ -743,12 +762,15 @@ int main( int argc, char* args[] )
                     {
                         scrollingOffset = 0;
                     }
+
+
                     for(int i=0;i<3;i++){
                     if(checkCollision(dot.getCollider(),v[i].getCollider())){
                             gStartgame = false;
                         }
                     }
                 }
+
 
                 //Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
@@ -759,7 +781,14 @@ int main( int argc, char* args[] )
 				gBGTexture.render( scrollingOffset + gBGTexture.getWidth(), 0, NULL );
 
 
-                std::string s = "score: " + std::to_string(int(SDL_GetTicks())/1000);
+                /*std::string s = "score: " + std::to_string(int(SDL_GetTicks())/1000);
+                SDL_Color textColor = { 255,255,255 };*/
+                for(int i=0;i<3;i++){
+                    if(v[i].mPosX < - v[i].GetWidth() ){
+                        score++;
+                    }
+                }
+                std::string s = "score: " + std::to_string(score/8);
                 SDL_Color textColor = { 255,255,255 };
                 gTextTexture.loadFromRenderedText( s.c_str(), textColor );
 
@@ -795,3 +824,4 @@ int main( int argc, char* args[] )
 
 	return 0;
 }
+
