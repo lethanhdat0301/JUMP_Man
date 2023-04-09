@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 #include <stdio.h>
 #include <string>
 #include <random>
@@ -20,6 +21,9 @@ class LTexture
 
 		//Loads image at specified path
 		bool loadFromFile( std::string path );
+
+		//Creates image from font string
+		bool loadFromRenderedText( std::string textureText, SDL_Color textColor );
 
 		//Deallocates texture
 		void free();
@@ -57,9 +61,6 @@ class LTexture
 class Dot
 {
     public:
-		//The dimensions of the dot
-		static const int DOT_WIDTH = 0;
-		static const int DOT_HEIGHT = 0;
 
 		//Maximum axis velocity of the dot
 		static const int DOT_VEL = 15;
@@ -88,9 +89,11 @@ class Dot
 		SDL_Rect getCollider();
 		bool isJumping = false;
 
+        int mPosX, mPosY;
+
     private:
 		//The X and Y offsets of the dot
-		int mPosX, mPosY;
+
 
 		//The velocity of the dot
 		int mVelX, mVelY;
@@ -98,7 +101,9 @@ class Dot
         int ay=0;
 
         SDL_Rect mFrame;
+
         LTexture mDotTexture;
+
         //Dot's collision box
         SDL_Rect mCollider;
 };
@@ -107,7 +112,6 @@ class Object
    private:
 	int mSpriteWidth, mSpriteHeight;
     int mPosX,mPosY;
-    int mVobX;
     SDL_Rect mCollider;
 public:
 	Object();
@@ -121,6 +125,8 @@ public:
 
     int GetWidth();
 	int GetHeight();
+
+    int mVobX;
 
 	void render();
 
@@ -157,10 +163,13 @@ SDL_Window* gWindow = NULL;
 //The window renderer
 SDL_Renderer* gRenderer = NULL;
 
+TTF_Font *gFont = NULL;
+
 //Scene textures
 LTexture gDotTexture;
 LTexture gBGTexture;
 LTexture gObTexture;
+LTexture gTextTexture;
 
 LTexture::LTexture()
 {
@@ -214,6 +223,40 @@ bool LTexture::loadFromFile( std::string path )
 
 	//Return success
 	mTexture = newTexture;
+	return mTexture != NULL;
+}
+
+bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColor )
+{
+	//Get rid of preexisting texture
+	free();
+
+	//Render text surface
+	SDL_Surface* textSurface = TTF_RenderText_Solid( gFont, textureText.c_str(), textColor );
+	if( textSurface == NULL )
+	{
+		printf( "Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError() );
+	}
+	else
+	{
+		//Create texture from surface pixels
+        mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
+		if( mTexture == NULL )
+		{
+			printf( "Unable to create texture from rendered text! SDL Error: %s\n", SDL_GetError() );
+		}
+		else
+		{
+			//Get image dimensions
+			mWidth = textSurface->w;
+			mHeight = textSurface->h;
+		}
+
+		//Get rid of old surface
+		SDL_FreeSurface( textSurface );
+	}
+
+	//Return success
 	return mTexture != NULL;
 }
 
@@ -303,8 +346,8 @@ Dot::Dot()
     mPosY = 183;
 
     //Set collision box dimension
-	mCollider.w = DOT_WIDTH;
-	mCollider.h = DOT_HEIGHT;
+	mCollider.w = mDotTexture.getWidth();
+	mCollider.h = mDotTexture.getHeight();
 
     //Initialize the velocity
     mVelX = 0;
@@ -337,7 +380,7 @@ void Dot::move()
     mVelY -= ay;
 
     //If the dot went too far up or down
-    if( ( mPosY < 0 ) || ( mPosY + DOT_HEIGHT > SCREEN_HEIGHT ) )
+    if( ( mPosY < 0 ) || ( mPosY + mDotTexture.getHeight() > SCREEN_HEIGHT ) )
     {
         //Move back
         mPosY -= mVelY;
@@ -369,7 +412,7 @@ Object::Object()
 	mSpriteHeight = 0;
 	mPosX =400;
 	mPosY =170;
-	mVobX = 2;
+	//mVobX = 2;
 }
 
 Object :: Object(SDL_Renderer* renderer, std::string path, int w, int h){
@@ -398,7 +441,7 @@ void Object::move(){
 
         mPosX = SCREEN_WIDTH;
     }
-    mCollider.x += mVobX;
+    mCollider.x = mPosX;
     mCollider.y = mPosY;
 }
 
@@ -416,6 +459,7 @@ int Object::GetHeight()
 {
 	return mSpriteHeight;
 }
+
 
 SDL_Rect Object::getCollider(){
     return mCollider;
@@ -468,6 +512,14 @@ bool init()
 					printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
 					success = false;
 				}
+
+				 //Initialize SDL_ttf
+				if( TTF_Init() == -1 )
+				{
+					printf( "SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError() );
+					success = false;
+				}
+
 			}
 		}
 	}
@@ -481,7 +533,7 @@ bool loadMedia()
 	bool success = true;
 
 	//Load dot texture
-	if( !gDotTexture.loadFromFile( "image/8.png" ) )
+	if( !gDotTexture.loadFromFile( "image/10.png" ) )
 	{
 		printf( "Failed to load dot texture!\n" );
 		success = false;
@@ -500,6 +552,24 @@ bool loadMedia()
 		printf( "Failed to load object texture!\n" );
 		success = false;
 	}
+
+	gFont = TTF_OpenFont( "image/font.ttf", 40 );
+	if( gFont == NULL )
+	{
+		printf( "Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError() );
+		success = false;
+	}
+	else
+	{
+		//Render text
+		SDL_Color textColor = { 255,255,255 };
+		if( !gTextTexture.loadFromRenderedText( "SCORE:", textColor ) )
+		{
+			printf( "Failed to render text texture!\n" );
+			success = false;
+		}
+	}
+
 	return success;
 }
 
@@ -509,6 +579,12 @@ void close()
 	gDotTexture.free();
 	gBGTexture.free();
     gObTexture.free();
+    gTextTexture.free();
+
+    //Free global font
+	TTF_CloseFont( gFont );
+	gFont = NULL;
+
 	//Destroy window
 	SDL_DestroyRenderer( gRenderer );
 	SDL_DestroyWindow( gWindow );
@@ -516,6 +592,7 @@ void close()
 	gRenderer = NULL;
 
 	//Quit SDL subsystems
+	TTF_Quit();
 	IMG_Quit();
 	SDL_Quit();
 }
@@ -570,6 +647,7 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     static int frameY =0;
     static int numberofframe=4;
     bool gStartgame = false;
+    static int score =0;
 int main( int argc, char* args[] )
 {
     srand(SDL_GetTicks());
@@ -598,14 +676,16 @@ int main( int argc, char* args[] )
 
 			Object object;
 
-            object = Object(gRenderer,"image/3.png",50,104);
+            object = Object(gRenderer,"image/3.png",42,90);
 
-            object.SetDimension (500,170);
+            object.SetDimension(500,183);
+
+            object.mVobX = 7;
 
 			//The background scrolling offset
 			int scrollingOffset = 0;
 
-            dot.SetDefaultFrame(0,0,65,95);
+            dot.SetDefaultFrame(0,0,66,92);
 
 			//While application is running
 			while( !quit )
@@ -628,41 +708,44 @@ int main( int argc, char* args[] )
                     }
                     if (gStartgame == true){
 
-                    if(dot.isJumping==true){
-                            if(frameX==4){
+                        if(dot.isJumping==true){
+                            if(frameX==3){
                                 dot.isJumping=false;
                             }
-                            frameY=1;
-                            numberofframe=5;
-                            ++frameX;
+                                frameY=1;
+                                numberofframe=3;
+                                ++frameX;
                             if (frameX/7 >= numberofframe){
-                            frameX =0;
+                                frameX =0;
                             }
-                    } else {
-                            frameY=0;
-                            numberofframe=4;
-                            frameX++;
+                        } else {
+                                frameY=0;
+                                numberofframe=6;
+                                frameX++;
                             if (frameX/7 >= numberofframe){
                                 frameX=0;
                             }
+                        }
+                        dot.SetFrame(frameX,frameY, 7);
+
+                        dot.move();
+                        object.move();
+
+
+                    //Scroll background
+                    scrollingOffset-=3;
+                    if( scrollingOffset < -gBGTexture.getWidth() )
+                    {
+                        scrollingOffset = 0;
                     }
-                    dot.SetFrame(frameX,frameY, 7);
-
-                    dot.move();
-                    object.move();
-
-
-				//Scroll background
-				scrollingOffset-=3;
-				if( scrollingOffset < -gBGTexture.getWidth() )
-				{
-					scrollingOffset = 0;
-				}
 
                     if(checkCollision(dot.getCollider(),object.getCollider())){
-                        gStartgame = false;
-                    }
-                    }
+                            gStartgame = false;
+                        }
+                }
+                if(dot.mPosX < - object.GetWidth()){
+                    score++;
+                }
 
                 //Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
@@ -671,6 +754,9 @@ int main( int argc, char* args[] )
 				//Render background
 				gBGTexture.render( scrollingOffset, 0 ,NULL);
 				gBGTexture.render( scrollingOffset + gBGTexture.getWidth(), 0, NULL );
+
+                gTextTexture.render( 90, 15 , NULL );
+
 
 				//Render objects
 				dot.render();
