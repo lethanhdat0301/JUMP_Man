@@ -174,7 +174,7 @@ LTexture gObTexture;
 LTexture gTextTexture;
 
 static int score =0;
-std::vector<Object> v;
+
 
 LTexture::LTexture()
 {
@@ -346,7 +346,7 @@ Dot::Dot()
 {
     //Initialize the offsets
     mPosX = 190;
-    mPosY = 183;
+    mPosY = 187;
 
     //Set collision box dimension
 	mCollider.w = mDotTexture.getWidth();
@@ -413,8 +413,8 @@ Object::Object()
 {
 	mSpriteWidth = 0;
 	mSpriteHeight = 0;
-	mPosX =400;
-	mPosY =170;
+	mPosX =0;
+	mPosY =0;
 	//mVobX = 2;
 }
 
@@ -423,6 +423,7 @@ Object :: Object(SDL_Renderer* renderer, std::string path, int w, int h){
 	mSpriteWidth = w;
 	mCollider.w=w;
 	mCollider.h=h;
+	gObTexture.loadFromFile(path);
 }
 
 void Object :: render(){
@@ -432,16 +433,6 @@ void Object :: render(){
 void Object::move(){
     mPosX-=mVobX;
     if(mPosX < -100) {
-
-        int k = rand()%3;
-    if(k==0){
-        gObTexture.loadFromFile("image/3.png");
-    } else if(k==1){
-        gObTexture.loadFromFile("image/4.png");
-    } else if(k==2){
-         gObTexture.loadFromFile("image/5.png");
-    }
-
         mPosX = SCREEN_WIDTH;
     }
     mCollider.x = mPosX;
@@ -651,7 +642,7 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     static int frameY =0;
     static int numberofframe=4;
     bool gStartgame = false;
-
+    std::vector<Object> v;
 
 int main( int argc, char* args[] )
 {
@@ -679,11 +670,20 @@ int main( int argc, char* args[] )
 			//The dot that will be moving around on the screen
 			Dot dot;
 
-			Object object;
+			//Object object;
 
-                object = Object(gRenderer,"image/3.png",42,90);
-                object.SetDimension(500,183);
-                object.mVobX = 7;
+			for(int i=0;i<3;i++){
+                int k = rand()%3;
+                if(k==0){
+                    v.push_back(Object(gRenderer,"image/3.png",42,90));
+                } else if(k==1){
+                    v.push_back(Object(gRenderer,"image/4.png",42,90));
+                } else {
+                    v.push_back(Object(gRenderer,"image/5.png",42,90));
+                }
+                v[i].SetDimension(SCREEN_WIDTH + i* 300 ,185);
+                v[i].mVobX =7;
+			}
 
 
 			//The background scrolling offset
@@ -733,8 +733,9 @@ int main( int argc, char* args[] )
                         dot.SetFrame(frameX,frameY, 7);
 
                         dot.move();
-                        object.move();
-
+                        for(int i =0;i<3;i++){
+                        v[i].move();
+                        }
 
                     //Scroll background
                     scrollingOffset-=3;
@@ -742,15 +743,12 @@ int main( int argc, char* args[] )
                     {
                         scrollingOffset = 0;
                     }
-
-                    if(checkCollision(dot.getCollider(),object.getCollider())){
+                    for(int i=0;i<3;i++){
+                    if(checkCollision(dot.getCollider(),v[i].getCollider())){
                             gStartgame = false;
                         }
+                    }
                 }
-                /*if( object.mPosX < -object.GetWidth()){
-                    score++;
-                }*/
-
 
                 //Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
@@ -760,17 +758,20 @@ int main( int argc, char* args[] )
 				gBGTexture.render( scrollingOffset, 0 ,NULL);
 				gBGTexture.render( scrollingOffset + gBGTexture.getWidth(), 0, NULL );
 
-                //Render text
-                std::string s = "score: " + std::to_string(int(SDL_GetTicks()/1000));
+
+                std::string s = "score: " + std::to_string(int(SDL_GetTicks())/1000);
                 SDL_Color textColor = { 255,255,255 };
                 gTextTexture.loadFromRenderedText( s.c_str(), textColor );
 
                 gTextTexture.render( 90, 15 , NULL );
 
 
-				//Render objects
+                //Render objects
 				dot.render();
-                object.render();
+                //object.render();
+                for(int i=0;i<3;i++){
+                    v[i].render();
+                }
 
 
 				//Update screen
