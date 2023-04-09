@@ -14,8 +14,9 @@ Update later
 ## Requirements:
 In order to successfully compile and run this project, you will need to have the SDL2 libraries on your system such: SLD2,SLD2_image,SLD2_ttf,SDL2_mixer.
 Download the latest SDL2 libraries  according to this link : https://www.libsdl.org/
-## To dowload projet :![image](https://user-images.githubusercontent.com/125379898/230767995-63aa5419-9421-4967-986d-d980e1dc61d7.png)
+## To dowload projet :
     click Code -> Dowload ZIP -> Extract the zip file.
+    ![image](https://user-images.githubusercontent.com/125379898/230767995-63aa5419-9421-4967-986d-d980e1dc61d7.png)
 ## Gameplay:
 Guide the character to jump over the cactus without touching them. Up arrow key to jump over. The owner has only 1 life.
 ## Contact:
