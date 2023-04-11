@@ -6,6 +6,7 @@
 #include <string>
 #include <random>
 #include <time.h>
+#include <SDL_mixer.h>
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 900;
@@ -172,10 +173,14 @@ SDL_Renderer* gRenderer = NULL;
 
 TTF_Font *gFont = NULL;
 
+//The music that will be played
+Mix_Music *gMusic = NULL;
+
 LTexture gDotTexture;
 LTexture gBGTexture;
 LTexture gObTexture;
 LTexture gTextTexture;
+LTexture gButtonTexture;
 
 static int score =0;
 
@@ -428,8 +433,8 @@ void Dot::SetDimension(int x, int y) {
 
 Object::Object()
 {
-	mSpriteWidth = 0;
-	mSpriteHeight = 0;
+	/*mSpriteWidth = 0;
+	mSpriteHeight = 0;*/
 	mPosX =0;
 	mPosY =0;
 	//mVobX = 2;
@@ -533,6 +538,13 @@ bool init()
 					success = false;
 				}
 
+                 //Initialize SDL_mixer
+				if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 )
+				{
+					printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() );
+					success = false;
+				}
+
 			}
 		}
 	}
@@ -584,6 +596,20 @@ bool loadMedia()
 		}
 	}
 
+    //Load music
+	gMusic = Mix_LoadMUS( "image/music.mp3" );
+	if( gMusic == NULL )
+	{
+		printf( "Failed to load beat music! SDL_mixer Error: %s\n", Mix_GetError() );
+		success = false;
+	}
+
+    if( !gButtonTexture.loadFromFile( "image/start.png" ) )
+	{
+		printf( "Failed to load dot texture!\n" );
+		success = false;
+	}
+
 	return success;
 }
 
@@ -594,10 +620,15 @@ void close()
 	gBGTexture.free();
     gObTexture.free();
     gTextTexture.free();
+    gButtonTexture.free();
 
     //Free global font
 	TTF_CloseFont( gFont );
 	gFont = NULL;
+
+	//Free the music
+	Mix_FreeMusic( gMusic );
+	gMusic = NULL;
 
 	//Destroy window
 	SDL_DestroyRenderer( gRenderer );
@@ -606,9 +637,11 @@ void close()
 	gRenderer = NULL;
 
 	//Quit SDL subsystems
+	Mix_Quit();
 	TTF_Quit();
 	IMG_Quit();
 	SDL_Quit();
+
 }
 
 bool checkCollision( SDL_Rect a, SDL_Rect b )
@@ -661,6 +694,8 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     static int numberofframe=4;
     bool gStartgame = false;
     std::vector<Object> v;
+    bool isResetgame = true;
+    bool button_visible = true;
 
 int main( int argc, char* args[] )
 {
@@ -693,19 +728,19 @@ int main( int argc, char* args[] )
                 srand((unsigned int) time(NULL)) ;
                 int k = rand()%3;
                 if(k==0){
-                    v.push_back(Object(gRenderer,"image/3.png",42,90));
+                    v.push_back(Object(gRenderer,"image/3.png",42,88));
                 } else if(k==1){
-                    v.push_back(Object(gRenderer,"image/4.png",60,90));
+                    v.push_back(Object(gRenderer,"image/4.png",60,88));
                 } else {
-                    v.push_back(Object(gRenderer,"image/5.png",50,90));
+                    v.push_back(Object(gRenderer,"image/5.png",50,88));
                 }
                 v[i].SetDimension(SCREEN_WIDTH + i* 300 ,185);
                 v[i].mVobX =7;
 			}
 
+            //The background scrolling offset
+                int scrollingOffset = 0;
 
-			//The background scrolling offset
-			int scrollingOffset = 0;
 
             dot.SetDefaultFrame(0,0,66,92);
             dot.SetDimension(30,92);
@@ -721,9 +756,29 @@ int main( int argc, char* args[] )
 					if( e.type == SDL_QUIT )
 					{
 						quit = true;
+					}else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
+                          int mouse_x = e.button.x;
+                          int mouse_y = e.button.y;
+                          // Kiểm tra xem click chuột trái vào ô (x,y) hay không
+                          if (mouse_x >= 400 && mouse_x < 400 + 96 && mouse_y >= 170 && mouse_y < 170 + 49) {
+                            // Xử lý sự kiện click chuột trái vào ô tại tọa độ (x,y)
+                                button_visible = false;
+                            }
 					} else if (e.key.keysym.sym == SDLK_SPACE) {
 
 					    gStartgame = true;
+
+					    /*if( Mix_PlayingMusic() == 0 )
+							{
+								//Play the music
+								Mix_PlayMusic( gMusic, -1 );
+							}*/
+					} else if(e.key.keysym.sym == SDLK_r){
+                              if(isResetgame) {
+                            score=0;
+                            dot.SetDefaultFrame(0,0,66,92);
+                            dot.SetDimension(30,92);
+                                  }
 					}
 
 					//Handle input for the dot
@@ -756,12 +811,14 @@ int main( int argc, char* args[] )
                         v[i].move();
                         }
 
+
+
                     //Scroll background
                     scrollingOffset-=3;
                     if( scrollingOffset < -gBGTexture.getWidth() )
-                    {
+                        {
                         scrollingOffset = 0;
-                    }
+                        }
 
 
                     for(int i=0;i<3;i++){
@@ -769,7 +826,14 @@ int main( int argc, char* args[] )
                             gStartgame = false;
                         }
                     }
-                }
+
+                    for(int i=0;i<3;i++){
+                        if(v[i].mPosX < - v[i].GetWidth() ){
+                            score++;
+                            }
+                        }
+
+                    }
 
 
                 //Clear screen
@@ -781,31 +845,25 @@ int main( int argc, char* args[] )
 				gBGTexture.render( scrollingOffset + gBGTexture.getWidth(), 0, NULL );
 
 
-                /*std::string s = "score: " + std::to_string(int(SDL_GetTicks())/1000);
-                SDL_Color textColor = { 255,255,255 };*/
-                for(int i=0;i<3;i++){
-                    if(v[i].mPosX < - v[i].GetWidth() ){
-                        score++;
+                if(button_visible){
+                gButtonTexture.render(4*SCREEN_WIDTH/9,SCREEN_HEIGHT/2,NULL);
                     }
-                }
-                std::string s = "score: " + std::to_string(score/8);
-                SDL_Color textColor = { 255,255,255 };
-                gTextTexture.loadFromRenderedText( s.c_str(), textColor );
 
-                gTextTexture.render( 90, 15 , NULL );
+                        if(!button_visible){
+                            dot.render();
+                            //object.render();
+                            for(int i=0;i<3;i++){
+                                v[i].render();
+                                }
 
+                            std::string s = "score: " + std::to_string(score/8);
+                            SDL_Color textColor = { 255,255,255 };
+                            gTextTexture.loadFromRenderedText( s.c_str(), textColor );
 
-                //Render objects
-				dot.render();
-                //object.render();
-                for(int i=0;i<3;i++){
-                    v[i].render();
-                }
-
-
+                            gTextTexture.render( 90, 15 , NULL );
+                    }
 				//Update screen
 				SDL_RenderPresent( gRenderer );
-
 
 				Uint32 finish = SDL_GetTicks();
 
