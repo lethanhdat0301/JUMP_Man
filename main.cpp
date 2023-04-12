@@ -99,6 +99,9 @@ class Dot
 
         int mPosX, mPosY;
 
+        //Dot's collision box
+        SDL_Rect mCollider;
+
     private:
         //The velocity of the dot
 		int mVelX, mVelY;
@@ -109,16 +112,13 @@ class Dot
 
         LTexture mDotTexture;
 
-        //Dot's collision box
-        SDL_Rect mCollider;
+
 };
 class Object
 {
    private:
 	int mSpriteWidth, mSpriteHeight;
-
-    SDL_Rect mCollider;
-public:
+    public:
 	Object();
 
 	Object(SDL_Renderer* renderer, std::string path, int w, int h);
@@ -138,6 +138,8 @@ public:
 	void render();
 
 	SDL_Rect getCollider();
+
+	SDL_Rect mCollider;
 
 };
 
@@ -344,8 +346,8 @@ Dot::Dot()
     mPosY = 0;
 
     //Set collision box dimension
-	mCollider.w = mDotTexture.getWidth();
-	mCollider.h = mDotTexture.getHeight();
+	mCollider.w = 30;
+	mCollider.h = 92;
 
     //Initialize the velocity
     mVelX = 0;
@@ -384,13 +386,13 @@ void Dot::move()
         mPosY -= mVelY;
     }
 
-     if(mPosY > 182) {
+     if(mPosY > 187) {
                     mVelY=0;
                     ay =0;
                     isJumping = false;
-                    mPosY=182;
+                    mPosY=187;
                 }
-    if(mPosY < 182) {
+    if(mPosY < 187) {
         isJumping=true;
     }
 
@@ -424,8 +426,6 @@ SDL_Rect Dot::getCollider(){
 }
 
 void Dot::SetDimension(int x, int y) {
-    mCollider.w=x;
-    mCollider.h=y;
     mPosX=x;
     mPosY=y;
 }
@@ -743,8 +743,8 @@ int main( int argc, char* args[] )
                 int scrollingOffset = 0;
 
 
-            dot.SetDefaultFrame(190,190,67.9,92);
-            dot.SetDimension(190,190);
+            dot.SetDefaultFrame(0,0,67.9,92);
+            dot.SetDimension(190,187);
 
 			//While application is running
 			while( !quit )
@@ -768,20 +768,20 @@ int main( int argc, char* args[] )
 					} else if (e.key.keysym.sym == SDLK_SPACE) {
                         if(!button_visible){
                             gStartgame = true;
-                            /*if( Mix_PlayingMusic() == 0 )
+                            if( Mix_PlayingMusic() == 0 )
 							{
 								//Play the music
 								Mix_PlayMusic( gMusic, -1 );
-							}*/
+							}
                         }
 
 
 					} else if(e.key.keysym.sym == SDLK_r){
                               if(isResetgame) {
                             score=0;
-                            dot.SetDefaultFrame(0,0,66,92);
+                            dot.SetDefaultFrame(0,0,67.9,92);
                             dot.mPosX = 190;
-                            dot.mPosY=190;
+                            dot.mPosY=187;
 
                             for(int i=0;i<3;i++){
                                 srand((unsigned int) time(NULL)) ;
@@ -829,7 +829,6 @@ int main( int argc, char* args[] )
                         for(int i =0;i<3;i++){
                         v[i].move();
                         }
-
                     //Scroll background
                     scrollingOffset-=3;
                     if( scrollingOffset < -gBGTexture.getWidth() )

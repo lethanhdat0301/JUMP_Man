@@ -1,0 +1,12 @@
+# depslib dependency file v1.0
+1681282432 source:e:\sdlnew\game\main.cpp
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<stdio.h>
+	<iostream>
+	<string>
+	<random>
+	<time.h>
+	<SDL_mixer.h>
+
