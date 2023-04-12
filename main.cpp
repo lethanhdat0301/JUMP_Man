@@ -6,6 +6,7 @@
 #include <string>
 #include <random>
 #include <time.h>
+#include <SDL_mixer.h>
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 900;
@@ -75,8 +76,6 @@ class Dot
 		void handleEvent( SDL_Event& e );
 
 		//Moves the dot
-		//void move();
-
 		void move();
 
 		//Shows the dot on the screen
@@ -84,23 +83,24 @@ class Dot
 
 		void SetDimension(int x, int y);
 
-        void SetDefaultFrame(int x, int y, int w, int h);
+        void SetDefaultFrame(int x, int y, double w, double h);
 
 		void SetFrame(int frameX,int frameY,int speed);
+
 		SDL_Rect GetFrame();
-			LTexture GetDotTexture() {
+
+        LTexture GetDotTexture() {
             return mDotTexture;
 		}
+
 		SDL_Rect getCollider();
+
 		bool isJumping = false;
 
         int mPosX, mPosY;
 
     private:
-		//The X and Y offsets of the dot
-
-
-		//The velocity of the dot
+        //The velocity of the dot
 		int mVelX, mVelY;
 
         int ay=0;
@@ -172,10 +172,14 @@ SDL_Renderer* gRenderer = NULL;
 
 TTF_Font *gFont = NULL;
 
+//The music that will be played
+Mix_Music *gMusic = NULL;
+
 LTexture gDotTexture;
 LTexture gBGTexture;
 LTexture gObTexture;
 LTexture gTextTexture;
+LTexture gButtonTexture;
 
 static int score =0;
 
@@ -336,8 +340,8 @@ int LTexture::getHeight()
 Dot::Dot()
 {
     //Initialize the offsets
-    mPosX = 190;
-    mPosY = 187;
+    mPosX = 0;
+    mPosY = 0;
 
     //Set collision box dimension
 	mCollider.w = mDotTexture.getWidth();
@@ -399,7 +403,7 @@ void Dot::render()
     //Show the dot
 	gDotTexture.render( mPosX, mPosY,&mFrame);
 }
-void Dot::SetDefaultFrame(int x, int y, int w, int h){
+void Dot::SetDefaultFrame(int x, int y, double w, double h){
     mFrame.x=x;
     mFrame.y=y;
     mFrame.w=w;
@@ -422,14 +426,16 @@ SDL_Rect Dot::getCollider(){
 void Dot::SetDimension(int x, int y) {
     mCollider.w=x;
     mCollider.h=y;
+    mPosX=x;
+    mPosY=y;
 }
 
 
 
 Object::Object()
 {
-	mSpriteWidth = 0;
-	mSpriteHeight = 0;
+	/*mSpriteWidth = 0;
+	mSpriteHeight = 0;*/
 	mPosX =0;
 	mPosY =0;
 	//mVobX = 2;
@@ -533,6 +539,13 @@ bool init()
 					success = false;
 				}
 
+                 //Initialize SDL_mixer
+				if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 )
+				{
+					printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() );
+					success = false;
+				}
+
 			}
 		}
 	}
@@ -546,7 +559,7 @@ bool loadMedia()
 	bool success = true;
 
 	//Load dot texture
-	if( !gDotTexture.loadFromFile( "image/10.png" ) )
+	if( !gDotTexture.loadFromFile( "image/20.png" ) )
 	{
 		printf( "Failed to load dot texture!\n" );
 		success = false;
@@ -584,6 +597,20 @@ bool loadMedia()
 		}
 	}
 
+    //Load music
+	gMusic = Mix_LoadMUS( "image/music.mp3" );
+	if( gMusic == NULL )
+	{
+		printf( "Failed to load beat music! SDL_mixer Error: %s\n", Mix_GetError() );
+		success = false;
+	}
+
+    if( !gButtonTexture.loadFromFile( "image/start.png" ) )
+	{
+		printf( "Failed to load dot texture!\n" );
+		success = false;
+	}
+
 	return success;
 }
 
@@ -594,10 +621,15 @@ void close()
 	gBGTexture.free();
     gObTexture.free();
     gTextTexture.free();
+    gButtonTexture.free();
 
     //Free global font
 	TTF_CloseFont( gFont );
 	gFont = NULL;
+
+	//Free the music
+	Mix_FreeMusic( gMusic );
+	gMusic = NULL;
 
 	//Destroy window
 	SDL_DestroyRenderer( gRenderer );
@@ -606,9 +638,11 @@ void close()
 	gRenderer = NULL;
 
 	//Quit SDL subsystems
+	Mix_Quit();
 	TTF_Quit();
 	IMG_Quit();
 	SDL_Quit();
+
 }
 
 bool checkCollision( SDL_Rect a, SDL_Rect b )
@@ -661,6 +695,8 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     static int numberofframe=4;
     bool gStartgame = false;
     std::vector<Object> v;
+    bool isResetgame = true;
+    bool button_visible = true;
 
 int main( int argc, char* args[] )
 {
@@ -693,22 +729,22 @@ int main( int argc, char* args[] )
                 srand((unsigned int) time(NULL)) ;
                 int k = rand()%3;
                 if(k==0){
-                    v.push_back(Object(gRenderer,"image/3.png",42,90));
+                    v.push_back(Object(gRenderer,"image/3.png",42,88));
                 } else if(k==1){
-                    v.push_back(Object(gRenderer,"image/4.png",60,90));
+                    v.push_back(Object(gRenderer,"image/4.png",60,88));
                 } else {
-                    v.push_back(Object(gRenderer,"image/5.png",50,90));
+                    v.push_back(Object(gRenderer,"image/5.png",50,88));
                 }
                 v[i].SetDimension(SCREEN_WIDTH + i* 300 ,185);
                 v[i].mVobX =7;
 			}
 
+            //The background scrolling offset
+                int scrollingOffset = 0;
 
-			//The background scrolling offset
-			int scrollingOffset = 0;
 
-            dot.SetDefaultFrame(0,0,66,92);
-            dot.SetDimension(30,92);
+            dot.SetDefaultFrame(190,190,67.9,92);
+            dot.SetDimension(190,190);
 
 			//While application is running
 			while( !quit )
@@ -721,9 +757,46 @@ int main( int argc, char* args[] )
 					if( e.type == SDL_QUIT )
 					{
 						quit = true;
+					}else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
+                          int mouse_x = e.button.x;
+                          int mouse_y = e.button.y;
+                          // Kiểm tra xem click chuột trái vào ô (x,y) hay không
+                          if (mouse_x >= 400 && mouse_x < 400 + 96 && mouse_y >= 170 && mouse_y < 170 + 49) {
+                            // Xử lý sự kiện click chuột trái vào ô tại tọa độ (x,y)
+                                button_visible = false;
+                            }
 					} else if (e.key.keysym.sym == SDLK_SPACE) {
+                        if(!button_visible){
+                            gStartgame = true;
+                            /*if( Mix_PlayingMusic() == 0 )
+							{
+								//Play the music
+								Mix_PlayMusic( gMusic, -1 );
+							}*/
+                        }
 
-					    gStartgame = true;
+
+					} else if(e.key.keysym.sym == SDLK_r){
+                              if(isResetgame) {
+                            score=0;
+                            dot.SetDefaultFrame(0,0,66,92);
+                            dot.mPosX = 190;
+                            dot.mPosY=190;
+
+                            for(int i=0;i<3;i++){
+                                srand((unsigned int) time(NULL)) ;
+                                int k = rand()%3;
+                                if(k==0){
+                                    v.push_back(Object(gRenderer,"image/3.png",42,88));
+                                } else if(k==1){
+                                    v.push_back(Object(gRenderer,"image/4.png",60,88));
+                                } else {
+                                    v.push_back(Object(gRenderer,"image/5.png",50,88));
+                                }
+                                v[i].SetDimension(SCREEN_WIDTH + i* 300 ,185);
+                                v[i].mVobX =7;
+                                    }
+                                  }
 					}
 
 					//Handle input for the dot
@@ -751,6 +824,7 @@ int main( int argc, char* args[] )
                         }
                         dot.SetFrame(frameX,frameY, 7);
 
+
                         dot.move();
                         for(int i =0;i<3;i++){
                         v[i].move();
@@ -759,18 +833,21 @@ int main( int argc, char* args[] )
                     //Scroll background
                     scrollingOffset-=3;
                     if( scrollingOffset < -gBGTexture.getWidth() )
-                    {
+                        {
                         scrollingOffset = 0;
-                    }
-
+                        }
 
                     for(int i=0;i<3;i++){
                     if(checkCollision(dot.getCollider(),v[i].getCollider())){
                             gStartgame = false;
                         }
                     }
-                }
-
+                    for(int i=0;i<3;i++){
+                        if(v[i].mPosX < - v[i].GetWidth() ){
+                            score++;
+                            }
+                        }
+                    }
 
                 //Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
@@ -781,31 +858,25 @@ int main( int argc, char* args[] )
 				gBGTexture.render( scrollingOffset + gBGTexture.getWidth(), 0, NULL );
 
 
-                /*std::string s = "score: " + std::to_string(int(SDL_GetTicks())/1000);
-                SDL_Color textColor = { 255,255,255 };*/
-                for(int i=0;i<3;i++){
-                    if(v[i].mPosX < - v[i].GetWidth() ){
-                        score++;
+                if(button_visible){
+                gButtonTexture.render(4*SCREEN_WIDTH/9,SCREEN_HEIGHT/2,NULL);
                     }
-                }
-                std::string s = "score: " + std::to_string(score/8);
-                SDL_Color textColor = { 255,255,255 };
-                gTextTexture.loadFromRenderedText( s.c_str(), textColor );
 
-                gTextTexture.render( 90, 15 , NULL );
+                        if(!button_visible){
+                            dot.render();
+                            //object.render();
+                            for(int i=0;i<3;i++){
+                                v[i].render();
+                                }
 
+                            std::string s = "score: " + std::to_string(score/8);
+                            SDL_Color textColor = { 255,255,255 };
+                            gTextTexture.loadFromRenderedText( s.c_str(), textColor );
 
-                //Render objects
-				dot.render();
-                //object.render();
-                for(int i=0;i<3;i++){
-                    v[i].render();
-                }
-
-
+                            gTextTexture.render( 90, 15 , NULL );
+                    }
 				//Update screen
 				SDL_RenderPresent( gRenderer );
-
 
 				Uint32 finish = SDL_GetTicks();
 
@@ -824,4 +895,7 @@ int main( int argc, char* args[] )
 
 	return 0;
 }
+
+
+
 
