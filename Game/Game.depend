@@ -1,0 +1,109 @@
+# depslib dependency file v1.0
+1681288457 source:e:\sdlnew\game\main.cpp
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<stdio.h>
+	<iostream>
+	<string>
+	<random>
+	<time.h>
+	<SDL_mixer.h>
+
+1682610437 source:d:\du lieu\sdlnew\game\main.cpp
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<stdio.h>
+	<iostream>
+	<string>
+	<random>
+	<time.h>
+	<SDL_mixer.h>
+	"LTexture.h"
+	"Dot.h"
+	"Object.h"
+	"SDL2_Utils.h"
+	"Constant.h"
+
+1682660351 d:\du lieu\sdlnew\game\ltexture.h
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<stdio.h>
+	<iostream>
+	<string>
+	<random>
+	<time.h>
+	<SDL_mixer.h>
+	"Constant.h"
+
+1682660893 d:\du lieu\sdlnew\game\dot.h
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<stdio.h>
+	<iostream>
+	<string>
+	<random>
+	<time.h>
+	<SDL_mixer.h>
+	"LTexture.h"
+
+1682608957 d:\du lieu\sdlnew\game\object.h
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<stdio.h>
+	<iostream>
+	<string>
+	<random>
+	<time.h>
+	<SDL_mixer.h>
+	"LTexture.h"
+	"Dot.h"
+	"SDL2_Utils.h"
+	"Constant.h"
+
+1682610179 d:\du lieu\sdlnew\game\sdl2_utils.h
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<stdio.h>
+	<iostream>
+	<string>
+	<random>
+	<time.h>
+	<SDL_mixer.h>
+	"LTexture.h"
+	"Dot.h"
+	"Object.h"
+	"Constant.h"
+
+1682608957 d:\du lieu\sdlnew\game\constant.h
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_ttf.h>
+	<stdio.h>
+	<iostream>
+	<string>
+	<random>
+	<time.h>
+	<SDL_mixer.h>
+	"LTexture.h"
+	"Dot.h"
+	"Object.h"
+	"SDL2_Utils.h"
+
+1682660815 source:d:\du lieu\sdlnew\game\dot.cpp
+	"Dot.h"
+
+1682608416 source:d:\du lieu\sdlnew\game\object.cpp
+	"Object.h"
+
+1682610179 source:d:\du lieu\sdlnew\game\ltexture.cpp
+	"LTexture.h"
+
+1682608198 source:d:\du lieu\sdlnew\game\sdl2_utils.cpp
+	"SDL2_Utils.h"
+
