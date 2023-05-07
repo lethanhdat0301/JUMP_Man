@@ -6,6 +6,7 @@
 #include <string>
 #include <random>
 #include <time.h>
+#include <fstream>
 #include <SDL_mixer.h>
 
 //Screen dimension constants
@@ -174,6 +175,8 @@ SDL_Renderer* gRenderer = NULL;
 
 TTF_Font *gFont = NULL;
 
+TTF_Font *gFont1 = NULL;
+
 //The music that will be played
 Mix_Music *gMusic = NULL;
 
@@ -182,8 +185,14 @@ LTexture gBGTexture;
 LTexture gObTexture;
 LTexture gTextTexture;
 LTexture gButtonTexture;
+LTexture gText1Texture;
+LTexture gLoseTexture;
+LTexture gText2Texture;
+LTexture gGameTexture;
+LTexture gStartTexture;
 
 static int score =0;
+static int highscore=0;
 
 
 LTexture::LTexture()
@@ -579,7 +588,7 @@ bool loadMedia()
 		success = false;
 	}
 
-	gFont = TTF_OpenFont( "image/font.ttf", 40 );
+	gFont = TTF_OpenFont( "image/Alodraca.otf", 35 );
 	if( gFont == NULL )
 	{
 		printf( "Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError() );
@@ -611,6 +620,59 @@ bool loadMedia()
 		success = false;
 	}
 
+    gFont1 = TTF_OpenFont( "image/font.ttf", 20 );
+	if( gFont1 == NULL )
+	{
+		printf( "Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError() );
+		success = false;
+	}
+	else
+	{
+		//Render text
+		std::string s = "Highscore: " + std::to_string(highscore/5);
+		SDL_Color textColor = { 255, 255, 255};
+		if( !gText1Texture.loadFromRenderedText( s.c_str(), textColor ) )
+		{
+			printf( "Failed to render text texture!\n" );
+			success = false;
+		}
+	}
+
+        if( !gLoseTexture.loadFromFile( "image/22.png" ) )
+	{
+		printf( "Failed to load dot texture!\n" );
+		success = false;
+	}
+
+	gFont1 = TTF_OpenFont( "image/font.ttf", 20 );
+	if( gFont1 == NULL )
+	{
+		printf( "Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError() );
+		success = false;
+	}
+	else
+	{
+		//Render text
+		SDL_Color textColor = { 255, 255, 255};
+		if( !gText2Texture.loadFromRenderedText( "Press SPACEBACK to start game!", textColor ) )
+		{
+			printf( "Failed to render text texture!\n" );
+			success = false;
+		}
+	}
+
+	if( !gGameTexture.loadFromFile( "image/23.png" ) )
+	{
+		printf( "Failed to load background texture!\n" );
+		success = false;
+	}
+
+	if( !gStartTexture.loadFromFile( "image/24.png" ) )
+	{
+		printf( "Failed to load background texture!\n" );
+		success = false;
+	}
+
 	return success;
 }
 
@@ -622,10 +684,17 @@ void close()
     gObTexture.free();
     gTextTexture.free();
     gButtonTexture.free();
+    gText1Texture.free();
+    gLoseTexture.free();
+    gText2Texture.free();
+    gGameTexture.free();
 
     //Free global font
 	TTF_CloseFont( gFont );
 	gFont = NULL;
+
+    TTF_CloseFont( gFont1);
+	gFont1 = NULL;
 
 	//Free the music
 	Mix_FreeMusic( gMusic );
@@ -690,6 +759,35 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     return true;
 }
 
+void updateHighScore()
+{
+    if (score > highscore) {
+        highscore = score;
+    }
+}
+
+void saveHighScore()
+{
+    std::ofstream file("highscore.txt");
+    file << highscore;
+    file.close();
+}
+
+void loadHighScore()
+{
+    std::ifstream file("highscore.txt");
+    if (file.is_open()) {
+        file >> highscore;
+        file.close();
+    }
+}
+void resetHighScore()
+{
+    std::remove("highscore.txt");
+    std::FILE* file = std::fopen("highscore.txt", "w");
+    std::fclose(file);
+}
+
     static int frameX =0;
     static int frameY =0;
     static int numberofframe=4;
@@ -697,6 +795,7 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
     std::vector<Object> v;
     bool isResetgame = true;
     bool button_visible = true;
+    bool press = true;
 
 int main( int argc, char* args[] )
 {
@@ -746,6 +845,10 @@ int main( int argc, char* args[] )
             dot.SetDefaultFrame(0,0,67.9,92);
             dot.SetDimension(190,187);
 
+            resetHighScore();
+            loadHighScore();
+
+
 			//While application is running
 			while( !quit )
 			{
@@ -768,6 +871,7 @@ int main( int argc, char* args[] )
 					} else if (e.key.keysym.sym == SDLK_SPACE) {
                         if(!button_visible){
                             gStartgame = true;
+                            press = false;
                             if( Mix_PlayingMusic() == 0 )
 							{
 								//Play the music
@@ -848,6 +952,8 @@ int main( int argc, char* args[] )
                         }
                     }
 
+
+
                 //Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
 				SDL_RenderClear( gRenderer );
@@ -859,6 +965,7 @@ int main( int argc, char* args[] )
 
                 if(button_visible){
                 gButtonTexture.render(4*SCREEN_WIDTH/9,SCREEN_HEIGHT/2,NULL);
+                 gGameTexture.render(220,80,NULL);
                     }
 
                         if(!button_visible){
@@ -872,8 +979,31 @@ int main( int argc, char* args[] )
                             SDL_Color textColor = { 255,255,255 };
                             gTextTexture.loadFromRenderedText( s.c_str(), textColor );
 
-                            gTextTexture.render( 90, 15 , NULL );
+                            gTextTexture.render( 10, 280 , NULL );
+                        }
+                     updateHighScore();
+
+                    if(!button_visible){
+                         std::string s = "Highscore: " + std::to_string(highscore/5);
+                            SDL_Color textColor = { 255,255,255 };
+                            gText1Texture.loadFromRenderedText( s.c_str(), textColor );
+                            gText1Texture.render( 10,5 , NULL );
+
+                        if(press){
+                        gText2Texture.render(150,110,NULL);
+                        }
+                        if(!gStartgame){
+                            gStartTexture.render(240,175,NULL);
+                        }
                     }
+                    for(int i =0; i<3;++i){
+                    if(checkCollision(dot.getCollider(),v[i].getCollider())){
+                         gLoseTexture.render(300,80,NULL);
+                        }
+                    }
+                   saveHighScore();
+
+
 				//Update screen
 				SDL_RenderPresent( gRenderer );
 
